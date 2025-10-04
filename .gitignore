@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Airflow
+logs/
+*.db
+*.sqlite
+
+# Docker
+*.env
+
+# MinIO y datos generados
+minio-data/
+
+# Nessie
+nessie-data/
+
+# Checkpoints de Spark/Databricks
+*.checkpoint
+*.meta
+*.snap
+*.part*
+
+# Ignorar checkpoints de Jupyter Notebook
+.ipynb_checkpoints/
+
+# Ignorar la carpeta scripts
+scripts/
+
+# Dremio data
+dremio/data/*
+
+# Trino
+trino/auth/*
+trino/catalog/*
+trino/config/*

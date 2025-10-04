@@ -1,0 +1,193 @@
+# Configuración común para Spark
+x-spark-common: &spark-common
+  image: bitnami/spark:latest
+  user: root
+  volumes:
+    - ./jobs:/opt/bitnami/spark/jobs
+  networks:
+    - data-stack
+
+# Configuración común para Airflow
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: Dockerfile.airflow
+  env_file:
+    - airflow.env
+  volumes:
+    - ./jobs:/opt/airflow/jobs
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+  depends_on:
+    - postgres
+  networks:
+    - data-stack
+
+services:
+  # Spark Master
+  spark-master:
+    <<: *spark-common
+    command: bin/spark-class org.apache.spark.deploy.master.Master
+    ports:
+      - "9090:8080"
+      - "7077:7077"
+    environment:
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password
+
+  # Spark Worker
+  spark-worker:
+    <<: *spark-common
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=1g
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password
+
+  # Jupyter Notebook con PySpark
+  jupyter:
+    image: jupyter/pyspark-notebook
+    container_name: jupyter_notebook_data_stack_FHBD
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./scripts:/home/jovyan/work
+      - ./requirements.txt:/tmp/requirements.txt
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password
+    networks:
+      - data-stack
+    depends_on:
+      - spark-master
+      - spark-worker
+    command: >
+      bash -c "
+      pip install --no-cache-dir -r /tmp/requirements.txt &&
+      jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password='' &&
+      tail -f /dev/null"
+
+  # PostgreSQL para Airflow
+  postgres:
+    image: postgres:14.0
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    networks:
+      - data-stack
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Airflow Webserver
+  webserver:
+    <<: *airflow-common
+    command: >
+      bash -c "
+      airflow db migrate;
+      airflow connections add 'spark_default' --conn-type 'spark' --conn-host 'spark://spark-master' --conn-port '7077' || true;
+      airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin || true;
+      exec airflow webserver"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - scheduler
+
+  # Airflow Scheduler
+  scheduler:
+    <<: *airflow-common
+    command: >
+      bash -c "
+      airflow db migrate &&
+      airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin &&
+      airflow scheduler"
+
+  # MinIO
+  minio:
+    image: minio/minio
+    container_name: minio_docker_data_stack_FHBD
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=password
+      - MINIO_DOMAIN=minio
+      - MINIO_REGION_NAME=us-east-1
+      - MINIO_REGION=us-east-1
+    volumes:
+      - ./minio-data:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    networks:
+      - data-stack
+
+  # Nessie
+  nessie:
+    image: projectnessie/nessie:latest
+    container_name: nessie_data_stack_FHBD
+    environment:
+      - QUARKUS_PROFILE=prod
+      - QUARKUS_HTTP_PORT=19120
+      - QUARKUS_LOG_CONSOLE_FORMAT=%d{yyyy-MM-dd HH:mm:ss} %-5p [%c{1.}] (%t) %s%e%n
+      - QUARKUS_LOG_LEVEL=INFO
+    volumes:
+      - ./nessie-data:/nessie/data
+    ports:
+      - "19120:19120"
+    networks:
+      - data-stack
+
+  # Dremio
+  dremio:
+    platform: linux/x86_64
+    image: dremio/dremio-oss:latest
+    ports:
+      - 9047:9047
+      - 31010:31010
+      - 32010:32010
+    container_name: dremio_data_stack_FHBD
+    environment:
+      - DREMIO_JAVA_SERVER_EXTRA_OPTS=-Dpaths.dist=file:///opt/dremio/data/dist
+    volumes:
+    - ./dremio/conf:/opt/dremio/conf  
+    - ./dremio/data:/opt/dremio/data   
+    networks:
+      - data-stack
+
+
+  trino:
+    image: trinodb/trino:latest
+    container_name: trino_data_stack_FHBD
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./trino/catalog:/etc/trino/catalog
+      - ./trino/config:/etc/trino/config
+      - ./trino/auth:/etc/trino/auth
+    environment:
+      TRINO_USER: admin
+      TRINO_PASSWORD: password
+    networks:
+      - data-stack
+
+networks:
+  data-stack:
+
+volumes:
+  postgres_data:
+  minio-data:

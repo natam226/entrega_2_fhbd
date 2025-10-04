@@ -1,0 +1,48 @@
+FROM apache/airflow:2.10.2-python3.10
+
+USER root
+
+# ----------------------
+# Instalar dependencias del sistema
+# ----------------------
+RUN apt-get update && apt-get install -y \
+    curl \
+    openjdk-17-jdk-headless \
+    && rm -rf /var/lib/apt/lists/*
+
+# ----------------------
+# Variables de Java
+# ----------------------
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+# ----------------------
+# Crear carpeta de JARs
+# ----------------------
+RUN mkdir -p /opt/spark/jars
+
+# ----------------------
+# Descargar JARs necesarios
+# ----------------------
+RUN curl -L -o /opt/spark/jars/scala-library-2.12.18.jar https://repo1.maven.org/maven2/org/scala-lang/scala-library/2.12.18/scala-library-2.12.18.jar && \
+    curl -L -o /opt/spark/jars/hadoop-aws-3.3.4.jar https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar && \
+    curl -L -o /opt/spark/jars/aws-java-sdk-bundle-1.12.761.jar https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.761/aws-java-sdk-bundle-1.12.761.jar && \
+    curl -L -o /opt/spark/jars/iceberg-spark-runtime-3.5_2.12-1.5.0.jar https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-3.5_2.12/1.5.0/iceberg-spark-runtime-3.5_2.12-1.5.0.jar && \
+    curl -L -o /opt/spark/jars/iceberg-aws-1.5.0.jar https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-aws/1.5.0/iceberg-aws-1.5.0.jar && \
+    curl -L -o /opt/spark/jars/nessie-spark-extensions-3.5_2.12-0.95.0.jar https://repo1.maven.org/maven2/org/projectnessie/nessie-spark-extensions-3.5_2.12/0.95.0/nessie-spark-extensions-3.5_2.12-0.95.0.jar && \
+    curl -L -o /opt/spark/jars/postgresql-42.7.3.jar https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.3/postgresql-42.7.3.jar
+
+# ----------------------
+# Cambiar permisos
+# ----------------------
+RUN chown -R airflow:root /opt/spark/jars
+
+# ----------------------
+# Instalar Python packages
+# ----------------------
+USER airflow
+RUN pip install --no-cache-dir \
+    pyspark==3.5.1 \
+    boto3==1.34.131 \
+    apache-airflow-providers-apache-spark==4.11.0
+
