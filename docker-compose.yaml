@@ -35,6 +35,8 @@ services:
       - AWS_REGION=us-east-1
       - AWS_ACCESS_KEY_ID=admin
       - AWS_SECRET_ACCESS_KEY=password
+    networks:
+      - data-stack
 
   # Spark Worker
   spark-worker:
@@ -50,6 +52,8 @@ services:
       - AWS_REGION=us-east-1
       - AWS_ACCESS_KEY_ID=admin
       - AWS_SECRET_ACCESS_KEY=password
+    networks:
+      - data-stack
 
   # Jupyter Notebook con PySpark
   jupyter:
@@ -61,6 +65,7 @@ services:
       - ./scripts:/home/jovyan/work
       - ./requirements.txt:/tmp/requirements.txt
     environment:
+      - JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64  
       - SPARK_MASTER=spark://spark-master:7077
       - AWS_REGION=us-east-1
       - AWS_ACCESS_KEY_ID=admin
