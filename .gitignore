@@ -34,3 +34,5 @@ dremio/data/*
 trino/auth/*
 trino/catalog/*
 trino/config/*
+
+# Secrets

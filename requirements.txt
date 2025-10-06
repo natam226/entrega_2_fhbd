@@ -4,3 +4,7 @@ pyspark==3.5.2
 pandas==2.3.2
 boto3
 requests
+dlt[filesystem] == 1.4.0
+s3fs==2024.3.1
+fsspec==2024.3.1
+adlfs
