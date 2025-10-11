@@ -29,9 +29,5 @@ nessie-data/
 # Dremio data
 dremio/data/*
 
-# Trino
-trino/auth/*
-trino/catalog/*
-trino/config/*
 
 # Secrets
