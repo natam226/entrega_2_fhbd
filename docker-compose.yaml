@@ -35,7 +35,7 @@ services:
       - AWS_REGION=us-east-1
       - AWS_ACCESS_KEY_ID=admin
       - AWS_SECRET_ACCESS_KEY=password
-      - SPARK_MASTER_MEMORY=4g  # Memoria reservada para master/driver
+      - SPARK_MASTER_MEMORY=6g  # Memoria reservada para master/driver
 
   # Spark Worker
   spark-worker:
@@ -46,7 +46,7 @@ services:
     environment:
       - SPARK_MODE=worker
       - SPARK_WORKER_CORES=2
-      - SPARK_WORKER_MEMORY=6g
+      - SPARK_WORKER_MEMORY=8g
       - SPARK_WORKER_INSTANCES=1
       - SPARK_MASTER_URL=spark://spark-master:7077
       - AWS_REGION=us-east-1
