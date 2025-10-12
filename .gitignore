@@ -26,8 +26,3 @@ nessie-data/
 # Ignorar checkpoints de Jupyter Notebook
 .ipynb_checkpoints/
 
-# Dremio data
-dremio/data/*
-
-
-# Secrets
