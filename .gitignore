@@ -7,6 +7,7 @@ __pycache__/
 # Airflow
 *.db
 *.sqlite
+logs/
 
 # Docker
 *.env
