@@ -1,6 +1,6 @@
 # Configuración común para Spark
 x-spark-common: &spark-common
-  image: bitnami/spark:3.5.1
+  image: bitnamilegacy/spark:3.5.1
   user: root
   volumes:
     - ./jobs:/opt/bitnami/spark/jobs
