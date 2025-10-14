@@ -65,6 +65,9 @@ def votes_2023():
     yield from load_parquet_to_minio(url)
 
 def load_votes_table():
+
+    print("📖 bucket_url:", dlt.secrets.get("parquet_to_minio.destination.filesystem.bucket_url"))
+
     pipeline_votes = dlt.pipeline(
         pipeline_name="parquet_to_minio",
         destination="filesystem",
@@ -81,8 +84,7 @@ def load_votes_table():
         )
         print("✅ votes/2022 loaded:", load_info)
     except Exception as e:
-        print("❌ Error loading votes/2022:", e)
-
+        return f"❌ Error loading votes/2022: {e}"
     # VOTES 2023
     try:
         load_info = pipeline_votes.run(
@@ -93,9 +95,12 @@ def load_votes_table():
         )
         print("✅ votes/2023 loaded:", load_info)
     except Exception as e:
-        print("❌ Error loading votes/2023:", e)
+        return f"❌ Error loading votes/2023: {e}"
+    
+    return None
     
 def main():
+
     logger.info("🚀 Starting data ingestion process...")
     try:
         ensure_bucket_exists(
@@ -104,8 +109,13 @@ def main():
             secret_key="password"
         )
 
-        load_votes_table()
-        logger.info("✅ Bronze ingestion completed successfully.")
+        load_state = load_votes_table()
+
+        if load_state is not None:
+            logger.error(load_state)
+            raise
+        
+        logger.info("✅ Data ingestion completed successfully.")
         return True
     except Exception as e:
         logger.error(f"❌ Pipeline failed: {e}")
