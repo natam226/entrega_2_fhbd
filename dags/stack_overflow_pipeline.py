@@ -5,7 +5,7 @@ import sys, os
 
 # Asegurar path del job
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from jobs import bronze_ingest
+from jobs import bronze_ingest, silver_transform
 
 default_args= {
     'depends_on_past': False,
@@ -25,4 +25,9 @@ with DAG(
         python_callable=bronze_ingest.main
     )
 
-bronze_task
+    silver_task = PythonOperator(
+        task_id='silver_transform',
+        python_callable=silver_transform.main
+    )
+
+bronze_task >> silver_task
