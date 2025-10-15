@@ -27,3 +27,5 @@ nessie-data/
 # Ignorar checkpoints de Jupyter Notebook
 .ipynb_checkpoints/
 
+# Secrets de DLT
+scripts/.dlt/secrets.toml
