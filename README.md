@@ -234,7 +234,7 @@ bronze/
 3.  **Configuración de Almacenamiento (Storage Settings):**
     *   **Access Key:** `admin` (el usuario root de MinIO)
     *   **Secret Key:** `password` (la contraseña root de MinIO)
-    *   **Root Path:** `/silver`
+    *   **Root Path:** `gold`
 
 4.  **Propiedades de Conexión (Connection Properties):**
     *   Añade las siguientes tres propiedades haciendo clic en "Add Property":
@@ -283,4 +283,5 @@ Para ejecutar consultas sobre la capa Silver, conéctate a Trino desde DBeaver.
 ---
 
  > **⚠️ Al terminar**: No olvides apagar tus contenedores de Docker usando el comando `docker compose down`.
+
 
