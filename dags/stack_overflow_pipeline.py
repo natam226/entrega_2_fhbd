@@ -4,9 +4,8 @@ from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOpe
 from datetime import datetime
 import sys, os
 
-# Asegurar path del job
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from jobs import bronze_ingest
+from jobs import bronze_ingest, create_minio_buckets
 
 default_args= {
     'depends_on_past': False,
@@ -23,6 +22,10 @@ with DAG(
     schedule_interval=None,
     catchup=False
 ) as dag:
+    create_buckets_task = PythonOperator(
+        task_id="create_minio_buckets_task",
+        python_callable=create_minio_buckets.main
+    )
     bronze_task = PythonOperator(
         task_id='bronze_ingest',
         python_callable=bronze_ingest.main
@@ -88,7 +91,7 @@ with DAG(
         },
     )
 
-    gold_agg = SparkSubmitOperator(
+    gold_task = SparkSubmitOperator(
         task_id="gold_agg",
         application="/opt/airflow/jobs/gold_agg.py",
         conn_id="spark_default",
@@ -148,4 +151,4 @@ with DAG(
         },
     )
 
-bronze_task >> silver_task>> gold_agg
+create_buckets_task >> bronze_task >> silver_task >> gold_task
