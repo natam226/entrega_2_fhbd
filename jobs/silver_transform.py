@@ -109,7 +109,7 @@ def clean_posts_sql(spark: SparkSession, df):
                 SELECT *,
                        ROW_NUMBER() OVER (
                            PARTITION BY Id
-                           ORDER BY COALESCE(LastActivityDate, CreationDate) DESC
+                           ORDER BY COALESCE(last_activity_date, creation_date) DESC
                        ) AS rn
                 FROM raw_posts
                 WHERE Id NOT IN (1000000001, 1000000010)
@@ -117,27 +117,27 @@ def clean_posts_sql(spark: SparkSession, df):
             casted AS (
                 SELECT
                     Id,
-                    CAST(PostTypeId AS INT) AS PostTypeId,
-                    CAST(AcceptedAnswerId AS STRING) AS AcceptedAnswerId_clean,
-                    TO_TIMESTAMP(CreationDate) AS CreationDate,
-                    TO_TIMESTAMP(LastEditDate) AS LastEditDate,
-                    TO_TIMESTAMP(LastActivityDate) AS LastActivityDate,
-                    TO_TIMESTAMP(ClosedDate) AS ClosedDate,
-                    TO_TIMESTAMP(CommunityOwnedDate) AS CommunityOwnedDate,
-                    CAST(OwnerUserId AS STRING) AS OwnerUserId_clean,
-                    CAST(OwnerDisplayName AS STRING) AS OwnerDisplayName,
-                    CAST(LastEditorUserId AS STRING) AS LastEditorUserId,
-                    CAST(LastEditorDisplayName AS STRING) AS LastEditorDisplayName,
-                    CAST(Score AS BIGINT) AS Score,
-                    CAST(ViewCount AS BIGINT) AS ViewCount,
-                    CAST(AnswerCount AS BIGINT) AS AnswerCount,
-                    CAST(CommentCount AS BIGINT) AS CommentCount,
-                    CAST(FavoriteCount AS BIGINT) AS FavoriteCount,
-                    CAST(Body AS STRING) AS Body,
-                    CAST(Title AS STRING) AS Title,
-                    CAST(Tags AS STRING) AS Tags,
-                    CAST(ContentLicense AS STRING) AS ContentLicense,
-                    CAST(ParentId AS STRING) AS ParentId_clean
+                    CAST(post_type_id AS INT) AS PostTypeId,
+                    CAST(accepted_answer_id AS STRING) AS AcceptedAnswerId_clean,
+                    TO_TIMESTAMP(creation_date) AS CreationDate,
+                    TO_TIMESTAMP(last_edit_date) AS LastEditDate,
+                    TO_TIMESTAMP(last_activity_date) AS LastActivityDate,
+                    TO_TIMESTAMP(closed_date) AS ClosedDate,
+                    TO_TIMESTAMP(community_owned_date) AS CommunityOwnedDate,
+                    CAST(owner_user_id AS STRING) AS OwnerUserId_clean,
+                    CAST(owner_display_name AS STRING) AS OwnerDisplayName,
+                    CAST(last_editor_user_id AS STRING) AS LastEditorUserId,
+                    CAST(last_editor_display_name AS STRING) AS LastEditorDisplayName,
+                    CAST(score AS BIGINT) AS Score,
+                    CAST(view_count AS BIGINT) AS ViewCount,
+                    CAST(answer_count AS BIGINT) AS AnswerCount,
+                    CAST(comment_count AS BIGINT) AS CommentCount,
+                    CAST(favorite_count AS BIGINT) AS FavoriteCount,
+                    CAST(body AS STRING) AS Body,
+                    CAST(title AS STRING) AS Title,
+                    CAST(tags AS STRING) AS Tags,
+                    CAST(content_license AS STRING) AS ContentLicense,
+                    CAST(parent_id AS STRING) AS ParentId_clean
                 FROM ranked
                 WHERE rn = 1 AND Id IS NOT NULL
             ),
