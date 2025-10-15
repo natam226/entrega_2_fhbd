@@ -1,0 +1,2 @@
+SELECT COUNT(*) FROM nessie.gold.vote_stats_per_post ;
+SELECT COUNT(*) FROM nessie.gold.vote_stats_per_post_trino ;

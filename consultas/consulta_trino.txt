@@ -1,0 +1,90 @@
+CREATE TABLE iceberg.gold.vote_stats_per_post_trino AS
+WITH
+posts_view AS (
+    SELECT * FROM iceberg.silver.posts
+),
+votes_view AS (
+    SELECT * FROM iceberg.silver.votes
+),
+valid_votes AS (
+    SELECT
+        v.post_id_clean AS post_id,
+        v.vote_type_id_clean,
+        v.creation_ts,
+        v.creation_year,
+        date_format(v.creation_ts, '%Y-%m') AS year_month
+    FROM votes_view v
+    WHERE v.post_id_clean IS NOT NULL
+      AND v.post_id_clean != -1
+      AND v.vote_type_id_clean != -1
+),
+vote_summary AS (
+    SELECT
+        post_id,
+        year(creation_ts) AS year,
+        month(creation_ts) AS month,
+        SUM(CASE WHEN vote_type_id_clean IN (2, 18, 20, 21, 32) THEN 1 ELSE 0 END) AS upvotes,
+        SUM(CASE WHEN vote_type_id_clean IN (3, 33) THEN 1 ELSE 0 END) AS downvotes,
+        COUNT(*) AS total_votes
+    FROM valid_votes
+    GROUP BY post_id, year(creation_ts), month(creation_ts)
+),
+posts_enriched AS (
+    SELECT
+        p.id AS post_id,
+        p.score AS base_score,
+        p.viewcount,
+        p.answercount,
+        p.commentcount,
+        p.favoritecount,
+        p.posttypeid,
+        p.creationdate,
+        p.lastactivitydate,
+        CASE p.posttypeid
+            WHEN 1 THEN 'Question'
+            WHEN 2 THEN 'Answer'
+            WHEN 3 THEN 'Orphaned Tag Wiki'
+            WHEN 4 THEN 'Tag Wiki Excerpt'
+            WHEN 5 THEN 'Tag Wiki'
+            WHEN 6 THEN 'Moderator Nomination'
+            WHEN 7 THEN 'Wiki Placeholder'
+            WHEN 8 THEN 'Privilege Wiki'
+            WHEN 9 THEN 'Article'
+            WHEN 10 THEN 'Help Article'
+            WHEN 12 THEN 'Collection'
+            WHEN 13 THEN 'Moderator Questionnaire Response'
+            WHEN 14 THEN 'Announcement'
+            WHEN 15 THEN 'Collective Discussion'
+            WHEN 17 THEN 'Collective Collection'
+            ELSE 'Other'
+        END AS post_type
+    FROM posts_view p
+)
+SELECT
+    ps.post_id,
+    ps.post_type,
+    vs.year,
+    vs.month,
+    ps.viewcount,
+    ps.answercount,
+    ps.commentcount,
+    ps.favoritecount,
+    COALESCE(vs.upvotes, 0) AS upvotes,
+    COALESCE(vs.downvotes, 0) AS downvotes,
+    COALESCE(vs.total_votes, 0) AS total_votes,
+    (ps.base_score + COALESCE(vs.upvotes, 0) - COALESCE(vs.downvotes, 0)) AS score,
+    ROUND(
+        CASE WHEN vs.total_votes > 0 THEN CAST(vs.upvotes AS DOUBLE) / vs.total_votes ELSE 0 END,
+        3
+    ) AS upvote_pct,
+    ROUND(
+        CASE WHEN vs.total_votes > 0 THEN CAST(vs.downvotes AS DOUBLE) / vs.total_votes ELSE 0 END,
+        3
+    ) AS downvote_pct,
+    current_timestamp AS load_date
+FROM posts_enriched ps
+LEFT JOIN vote_summary vs
+    ON ps.post_id = vs.post_id
+WHERE vs.year = 2023
+  AND vs.month IS NOT NULL;
+
