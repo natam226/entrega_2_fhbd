@@ -1,112 +1,98 @@
 
-# Proyecto ETL con Airflow, Spark, MinIO, Iceberg y Nessie
+# Proyecto 2: Arquitectura Lakehouse y Pipeline de Ingesta de Datos
 
-Este repositorio contiene un pipeline ETL que utiliza **Airflow**, **Apache Spark**, **MinIO**, **Iceberg** y **Nessie** para procesar datos desde un bucket de Bronze hacia Gold con control de versiones y catalogación.
+Este proyecto implementa una arquitectura Lakehouse completa utilizando Docker para orquestar todos los servicios. La arquitectura sigue el modelo Medallion (Bronze, Silver, Gold) para procesar y analizar datos del dataset de [StackOverflow](https://clickhouse.com/docs/getting-started/example-datasets/stackoverflow).
 
----
+### Integrantes del Proyecto
+*[Liseth Esmeralda Erazo Varela](https://github.com/memerazo)*
 
-## Contenido del repositorio
+*[Natalia Moreno Montoya](https://github.com/natam226)*
 
-- `Dockerfile`: Imagen de Airflow con dependencias de Spark, JARs de Iceberg y Nessie, y librerías Python.
-- `dags/load_to_iceberg_dag.py`: DAG de Airflow para ejecutar el pipeline ETL.
-- `jobs/load_to_iceberg.py`: Código PySpark que realiza la lectura desde Bronze y escritura en Iceberg.
-- `.gitignore`: Ignora checkpoints de Jupyter y scripts locales.
+*[Natalia Lopez Gallego](https://github.com/ntlg72)*
 
----
-
-## Requisitos
-
-- Docker y Docker Compose
-- Python 3.10+
-- Git
-- Acceso a un bucket MinIO (local o remoto)
+*[Valentina Bueno Collazos](https://github.com/valentinabc19)*
 
 ---
 
-## Instrucciones de uso
+## Arquitectura General
 
-### 0. Preparar datos en Bronze
+El proyecto utiliza los siguientes componentes:
+- **MinIO**: Almacenamiento de objetos compatible con S3.
+- **Nessie**: Catálogo de metadatos para tablas Iceberg.
+- **Apache Iceberg**: Formato de tabla para el data lake.
+- **Apache Spark**: Motor de procesamiento distribuido para las transformaciones.
+- **Apache Airflow**: Orquestador de flujos de trabajo (pipelines).
+- **DLT (Data Load Tool)**: Herramienta para la ingesta de datos en la capa Bronze.
+- **Jupyter Notebook**: Para ejecución manual y pruebas.
+- **Dremio**: Motor de consultas SQL para la capa Gold.
+- **Trino**: Motor de consultas SQL para la capa Silver.
 
-Antes de ejecutar el DAG, asegúrate de subir el archivo de ejemplo al bucket bronze usando la interfaz de MinIO:
+## 1. Despliegue de los Contenedores
 
-- Archivo de ejemplo: [yellow-tripdata-2025-01-parquet](https://www.kaggle.com/datasets/anujchincholikar/yellow-tripdata-2025-01-parquet)
-- Esto se hace a través de la UI de MinIO (no por código), en la carpeta correspondiente a Bronze.
+Para desplegar la infraestructura completa, se utiliza `docker-compose`.
 
-### 1. Clonar el repositorio
-```bash
-git clone <url-del-repo>
-cd <nombre-del-repo>
-````
+### Prerrequisitos
+- Docker y Docker Compose instalados en tu máquina.
 
-### 2. Construir la imagen de Airflow
+### Pasos para el Despliegue
 
-```bash
-docker build -t airflow-spark-minio-iceberg .
-```
+1.  **Clona el repositorio:**
+    ```bash
+    git clone https://github.com/natam226/entrega_2_fhbd
+    cd entrega_2_fhbd
+    ```
 
-### 3. Levantar servicios con Docker Compose
+2.  **Configura las variables de entorno de Airflow:**
+    Use el archivo de ejemplo [airflow.env.example](./airflow.env.example) y agregue los valores de cada variable para su caso
 
-Asegúrate de tener un `docker-compose.yml` configurado con:
+3.  **Levanta los servicios con Docker Compose:**
+    Ejecuta el siguiente comando en la raíz del proyecto para construir y levantar todos los contenedores en modo detached (-d):
+    ```bash
+    docker-compose up -d
+    ```
 
-* Airflow
-* MinIO
-* Nessie
-* (Opcional) PostgreSQL para metadatos de Airflow
+4.  **Verifica que todos los contenedores estén en ejecución:**
+    Puedes listar los contenedores activos con el siguiente comando:
+    ```bash
+    docker-compose ps
+    ```
+    Deberías ver todos los servicios (MinIO, Nessie, Spark, Airflow, Postgres, Jupyter, Dremio, Trino) en estado "Up" o "Running".
 
-```bash
-docker-compose up -d --build
-```
+## 3. Acceso a los Servicios
 
-### 4. Configurar variables de entorno
+Una vez que los contenedores están en ejecución, puedes acceder a las interfaces de usuario (UI) de los diferentes servicios a través de tu navegador web.
 
-```bash
-export AWS_ACCESS_KEY_ID=minioadmin
-export AWS_SECRET_ACCESS_KEY=minioadmin123
-export AWS_REGION=us-east-1
-export AWS_DEFAULT_REGION=us-east-1
-```
+### MinIO (Object Storage)
 
-* Configura MinIO en `load_to_iceberg_dag.py` y `load_to_iceberg.py` para que apunte a tu endpoint local (`http://minio:9000`).
+-   **URL:** [http://localhost:9001](http://localhost:9001)
+-   **Usuario:** `admin`
+-   **Contraseña:** `password`
+-   **Uso:** Aquí podrás ver y crear los buckets y los archivos Parquet e Iceberg generados en las capas Bronze, Silver y Gold.
 
-### 5. Ejecutar el DAG
+### Apache Airflow (Orquestación)
 
-* Accede a Airflow en `http://localhost:8080`
-* Activa el DAG `load_to_iceberg_dag`
-* Ejecuta el DAG manualmente o según la programación definida.
+-   **URL:** [http://localhost:8080](http://localhost:8080)
+-   **Usuario:** `airflow`
+-   **Contraseña:** `airflow`
+-   **Uso:** Desde aquí puedes activar, monitorizar y depurar el DAG `stack_overflow_pipeline` que orquesta todo el proceso.
+  > **Antes de la ejecución**: No olvides cargar la tabla de posts a MinIO de manera manual ...
+
+### Jupyter Notebook (Ejecución Manual)
+
+-   **URL:** [http://localhost:8888](http://localhost:8888)
+-   **Uso:** Permite ejecutar los notebooks (`bronze_ingest.ipynb`, `silver_transform.ipynb`, `gold_agg.ipynb`) de forma manual para pruebas o en caso de fallo del DAG de Airflow.
+
+### Dremio (Consulta SQL - Gold)
+
+-   **URL:** [http://localhost:9047](http://localhost:9047)
+-   **Uso:** Dremio se conecta a la capa Gold. La primera vez que accedas, te pedirá crear un usuario administrador. Luego, deberás configurar la conexión a MinIO y al catálogo de Nessie para poder consultar las tablas de la capa Gold.
+
+### Trino (Consulta SQL - Silver)
+
+-   **URL:** [http://localhost:8090](http://localhost:8090) (La interfaz de Trino es básica, se usa principalmente a través de un cliente SQL)
+-   **Usuario:** `admin` 
+-   **Uso:** Conéctate a Trino usando un cliente SQL como DBeaver o el CLI de Trino para ejecutar consultas sobre las tablas de la capa Silver.
 
 ---
 
-## Funcionalidades principales
-
-1. **Dockerfile**
-
-   * Incluye todos los JARs necesarios (`scala-library`, `hadoop-aws`, `aws-java-sdk-bundle`, Iceberg runtime, Nessie extensions, PostgreSQL).
-   * Instala librerías Python: `pyspark`, `boto3`, `apache-airflow-providers-apache-spark`.
-   * Corrige permisos de `/opt/spark/jars`.
-
-2. **DAG**
-
-   * Usa `spark.jars` locales para SparkSubmitOperator.
-   * Configuración completa para MinIO + Iceberg + Nessie.
-   * Variables de entorno para AWS y MinIO.
-
-3. **Job PySpark**
-
-   * `ensure_bucket_exists()`: crea el bucket Gold si no existe.
-   * `drop_table_if_exists()`: elimina tablas Iceberg previas.
-   * Flujo ETL: validar bucket → leer Bronze → eliminar tabla si existe → escribir Gold.
-   * Logging detallado y manejo de errores comunes (NotFoundException, RuntimeIOException).
-
----
-
-## Git
-
-* Ignora checkpoints de Jupyter y scripts locales:
-
-```gitignore
-.ipynb_checkpoints/
-scripts/
-```
-
-
-
+ > **⚠️ Al terminar**: No olvides apagar tus contenedores de Docker usando el comando `docker compose down`.
