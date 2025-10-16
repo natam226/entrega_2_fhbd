@@ -55,13 +55,14 @@ services:
 
   # Jupyter Notebook con PySpark
   jupyter:
-    image: jupyter/pyspark-notebook
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
     container_name: jupyter
     ports:
       - "8888:8888"
     volumes:
       - ./scripts:/home/jovyan/work
-      - ./requirements.txt:/tmp/requirements.txt
     environment:
       - SPARK_MASTER=spark://spark-master:7077
       - AWS_REGION=us-east-1
@@ -74,9 +75,9 @@ services:
       - spark-worker
     command: >
       bash -c "
-      pip install --no-cache-dir -r /tmp/requirements.txt &&
       jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password='' &&
       tail -f /dev/null"
+
 
   # PostgreSQL para Airflow
   postgres:
