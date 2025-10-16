@@ -264,7 +264,7 @@ Para ejecutar consultas sobre la capa Gold de forma interactiva, puedes usar un 
 
 ### Trino (Consulta SQL - Silver)
 
--   **URL:** [http://localhost:8090](http://localhost:8090) (La interfaz de Trino es básica, se usa principalmente a través de un cliente SQL)
+-   **URL:** [http://localhost:8081](http://localhost:8081) (La interfaz de Trino es básica, se usa principalmente a través de un cliente SQL)
 -   **Usuario:** `admin` 
 -   **Uso:** Conéctate a Trino usando un cliente SQL como DBeaver o el CLI de Trino para ejecutar consultas sobre las tablas de la capa Silver.
 
@@ -283,5 +283,6 @@ Para ejecutar consultas sobre la capa Silver, conéctate a Trino desde DBeaver.
 ---
 
  > **⚠️ Al terminar**: No olvides apagar tus contenedores de Docker usando el comando `docker compose down`.
+
 
 
